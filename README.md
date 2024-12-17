@@ -56,8 +56,8 @@ The pre-trained model parameters and test datasets are hosted on Zenodo for easy
 
 ### 1. Download the model parameters and test files using the following links:
 
-    - Model Parameters: [Download Here](https://zenodo.org/records/14510963/files/model_parameters.tar.gz?download=1)
-    - Test Files: [Download Here](https://zenodo.org/records/14510963/files/test_files.tar.gz?download=1)
+- Model Parameters: [Download Here](https://zenodo.org/records/14510963/files/model_parameters.tar.gz?download=1)
+- Test Files: [Download Here](https://zenodo.org/records/14510963/files/test_files.tar.gz?download=1)
 
 ### 2. Place the downloaded files in the data/ directory of the repository:
 
@@ -110,7 +110,7 @@ This will produce:
 To perform uncertainty estimation with Monte Carlo Dropout, run:
 
 ```
-python scripts/mc_dropout_inference.py \
+python scripts/mc_dropout.py \
     --checkpoint <path_to_checkpoint.ckpt> \
     --test_set <path_to_test_dataset> \
     --output_results <path_to_save_results.csv> \
