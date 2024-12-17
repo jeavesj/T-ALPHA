@@ -12,9 +12,6 @@
 There is significant interest in targeting disease-causing proteins with small molecule inhibitors to restore healthy cellular states. The ability to accurately predict the binding affinity of small molecules to a protein target in silico enables the rapid identification of candidate inhibitors and facilitates the optimization of on-target potency. In this work, we present T-ALPHA, a novel deep learning model that enhances protein-ligand binding affinity prediction by integrating multimodal feature representations within a hierarchical transformer framework to capture information critical to accurately predicting binding affinity. T-ALPHA outperforms all existing models reported in the literature on multiple benchmarks designed to evaluate protein-ligand binding affinity scoring functions. Remarkably, T-ALPHA maintains state-of-the-art performance when utilizing predicted structures rather than crystal structures, a powerful capability in real-world drug discovery applications where experimentally determined structures are often unavailable or incomplete. Additionally, we present an uncertainty-aware self-learning method for protein-specific alignment that does not require additional experimental data, and demonstrate that it improves T-ALPHA’s ability to rank compounds by binding affinity to biologically significant targets such as the SARS-CoV-2 main protease and the epidermal growth factor receptor. To facilitate implementation of T-ALPHA and reproducibility of all results presented in this paper, we have made all of our software available at this repository.
 
 
-![Figure](assets/architecture.png)
-
-
 # Table of Contents
 1. Installation
 2. Accessing Data Files
@@ -31,7 +28,7 @@ There is significant interest in targeting disease-causing proteins with small m
 ### 1. Clone the Repository
 
 ```
-git clone https://github.com/YOUR_USERNAME/T-ALPHA.git
+git clone https://github.com/gregory-kyro/T-ALPHA.git
 cd T-ALPHA
 ```
 
@@ -110,11 +107,11 @@ This will produce:
 To perform uncertainty estimation with Monte Carlo Dropout, run:
 
 ```
-python scripts/mc_dropout.py \
-    --checkpoint <path_to_checkpoint.ckpt> \
-    --test_set <path_to_test_dataset> \
-    --output_results <path_to_save_results.csv> \
-    --output_weighted <path_to_save_weighted_results.csv>
+python scripts/mc_dropout.py --checkpoint <path_to_checkpoint.ckpt> \
+                             --test_set <path_to_test_dataset> \
+                             --output_results <path_to_save_results.csv> \
+                             --output_weighted <path_to_save_weighted_results.csv>
+                                
 ```
 
 
@@ -130,4 +127,3 @@ Stay tuned for updates!
 For questions, issues, or collaborations, feel free to reach out:
 - Name: Gregory W. Kyro
 - Email: gregory.kyro@yale.edu
-- GitHub: gregory-kyro
