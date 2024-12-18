@@ -82,11 +82,11 @@ This repository provides three primary scripts to train the model, perform infer
 To train the model from scratch, run:
 
 ```
-python scripts/train_model.py --train_set <path_to_train_hdf> \
-                              --val_set <path_to_val_hdf> \
-                              --checkpoint_dir <path_to_save_checkpoints> \
-                              --save_dir <path_to_logs> \
-                              --save_name <experiment_name>
+python scripts/train.py --train_set <path_to_train_hdf> \
+                        --val_set <path_to_val_hdf> \
+                        --checkpoint_dir <path_to_save_checkpoints> \
+                        --save_dir <path_to_logs> \
+                        --save_name <experiment_name>
 ```
 
 ### 2. Performing Inference
