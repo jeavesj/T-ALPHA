@@ -235,11 +235,11 @@ class MetaModel(nn.Module):
         # combined ligand output
         combined_ligand_dim = 0
         if self.use_ligand_properties:
-            num_ligand_components += 209
+            combined_ligand_dim += 209
         if self.use_ligand_graph:
-            num_ligand_components += 512
+            combined_ligand_dim += 512
         if self.use_ligand_sequence:
-            num_ligand_components += 512
+            combined_ligand_dim += 512
 
         self.combined_pooled_ligand_transformer_output_projector = nn.Linear(
             combined_ligand_dim, 512
@@ -476,6 +476,33 @@ class MetaModel(nn.Module):
                 ligand_properties_output
             )
 
+
+        # ligand sequence
+        if self.use_ligand_sequence:
+            # ligand sequence output
+            ligand_sequence_output = self.ligand_sequence_projector(
+                data["roberta_vector"]
+            ).unsqueeze(
+                2
+            )  # convert from (batch, 768) to (batch, 512) to (batch, 512, 1)
+            ligand_sequence_output_embedding = self.ligand_sequence_embedding_layer(
+                ligand_sequence_output
+            )  # convert from (batch, 512, 1) to (batch, 512, 128)
+
+            if self.use_ligand_properties:
+                # ligand sequence decoder output
+                ligand_sequence_transformer_output = self.ligand_sequence_decoder(
+                    ligand_sequence_output_embedding,
+                    ligand_properties_transformer_output,
+                )
+
+            else:
+                # ligand sequence encoder output
+                ligand_sequence_transformer_output = self.ligand_sequence_encoder(
+                    ligand_sequence_output_embedding
+                )
+
+
         # ligand graph
         if self.use_ligand_graph:
 
@@ -519,30 +546,6 @@ class MetaModel(nn.Module):
                 pooled_ligand_graph_transformer_output.permute(0, 2, 1)
             )
 
-        # ligand sequence
-        if self.use_ligand_sequence:
-            # ligand sequence output
-            ligand_sequence_output = self.ligand_sequence_projector(
-                data["roberta_vector"]
-            ).unsqueeze(
-                2
-            )  # convert from (batch, 768) to (batch, 512) to (batch, 512, 1)
-            ligand_sequence_output_embedding = self.ligand_sequence_embedding_layer(
-                ligand_sequence_output
-            )  # convert from (batch, 512, 1) to (batch, 512, 128)
-
-            if self.use_ligand_properties:
-                # ligand sequence decoder output
-                ligand_sequence_transformer_output = self.ligand_sequence_decoder(
-                    ligand_sequence_output_embedding,
-                    ligand_properties_transformer_output,
-                )
-
-            else:
-                # ligand sequence encoder output
-                ligand_sequence_transformer_output = self.ligand_sequence_encoder(
-                    ligand_sequence_output_embedding
-                )
 
         # combine the three ligand transformer outputs
         if (

@@ -29,8 +29,8 @@ class MetaModelLightning(pl.LightningModule):
     def __init__(
         self,
         model,
-        train_dataset,
-        val_dataset,
+        train_dataset=None,
+        val_dataset=None,
         batch_size=16,
         num_epochs=100,
         batch_norm=True,
