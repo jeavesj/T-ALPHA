@@ -5,6 +5,8 @@
 [![](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/gregory-kyro/CardioGenAI/blob/main/LICENSE)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gregory-kyro/T-ALPHA/blob/main/T-ALPHA.ipynb)
+
 
 
 # Abstract
@@ -117,9 +119,13 @@ python scripts/mc_dropout.py --checkpoint <path_to_checkpoint.ckpt> \
 
 # On-the-Fly Inference Notebook
 
-We are actively developing a Jupyter Notebook for facile inference. This notebook will allow users to swiftly predict protein-ligand binding affinity using either sequence-based inputs (protein sequence and ligand SMILES) or structural inputs (PDB files, SDF files).
+The T-ALPHA Inference Notebook enables real-time protein-ligand binding affinity prediction. It supports:
 
-Stay tuned for updates!
+- Sequence-Based Inputs: Protein sequence and ligand SMILES.
+- Structural Inputs: Protein PDB and ligand SDF files.
+- PDB ID-Based Inputs: Fetch protein sequence automatically using a PDB ID.
+
+With minimal setup, you can quickly obtain p<i>K</i><sub>d</sub> predictions. Try it now [here](https://colab.research.google.com/github/gregory-kyro/T-ALPHA/blob/main/T-ALPHA.ipynb)
 
 
 # Contact
