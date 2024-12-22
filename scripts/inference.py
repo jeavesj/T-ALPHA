@@ -1,6 +1,7 @@
 import argparse
 
 from src.inference.perform_inference import perform_inference
+from src.utils.checkpoint_utils import update_parameter_keys
 
 
 def main():
@@ -36,6 +37,9 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # Update checkpoint keys and overwrite the existing file
+    update_parameter_keys(args.ckpt_path, args.ckpt_path)
 
     # Run inference
     results = perform_inference(
