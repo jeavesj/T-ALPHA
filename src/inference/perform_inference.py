@@ -216,15 +216,15 @@ def perform_inference(
             batch_surface_batch_idx = torch.cat(surface_batch_idx_list, dim=0)
 
             # Protein sequence data
-            batch_esm_vector = torch.cat(esm_vector_list, dim=0)
+            batch_esm_vector = torch.stack(esm_vector_list, dim=0)
 
             # Protein graph data
             batch_protein_graph = Batch.from_data_list(protein_graph_list)
             batch_protein_batch = torch.cat(protein_graph_batch_list, dim=0)
 
             # LIGAND #
-            batch_rdkit_vector = torch.cat(rdkit_vector_list, dim=0)
-            batch_roberta_vector = torch.cat(roberta_vector_list, dim=0)
+            batch_rdkit_vector = torch.stack(rdkit_vector_list, dim=0)
+            batch_roberta_vector = torch.stack(roberta_vector_list, dim=0)
 
             # Ligand graph data
             batch_ligand_graph = Batch.from_data_list(ligand_graph_list).to(device)
