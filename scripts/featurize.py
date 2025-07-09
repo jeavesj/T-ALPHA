@@ -1890,7 +1890,61 @@ def scale_unconnected_graph_features(protein_node_features: np.ndarray, scaler_f
 
     return standardized_features
 
+def update_parameter_keys(ckpt_path, output_path):
+    """
+    Update parameter keys in the checkpoint to handle all mismatched prefixes and names.
 
+    Args:
+        ckpt_path (str): Path to the original checkpoint file.
+        output_path (str): Path to save the updated checkpoint file.
+
+    Returns:
+        None
+    """
+    # Load the checkpoint
+    checkpoint = torch.load(ckpt_path, map_location="cpu")
+
+    # Extract the state_dict
+    state_dict = checkpoint['state_dict']
+
+    # Create a new state_dict with renamed keys
+    updated_state_dict = {}
+    for key, value in state_dict.items():
+        # Apply all replacements to handle mismatches
+        new_key = key.replace("dmasif_model", "protein_surface_model")
+        new_key = new_key.replace("esm_projector", "protein_sequence_projector")
+        new_key = new_key.replace("esm_embedding_layer", "protein_sequence_embedding_layer")
+        new_key = new_key.replace("rdkit_embedding_layer", "ligand_properties_embedding_layer")
+        new_key = new_key.replace("roberta_projector", "ligand_sequence_projector")
+        new_key = new_key.replace("roberta_embedding_layer", "ligand_sequence_embedding_layer")
+        new_key = new_key.replace("protein_transformer_encoder_layer", "protein_surface_encoder_layer")
+        new_key = new_key.replace("protein_transformer_encoder", "protein_surface_encoder")
+        new_key = new_key.replace("esm_transformer_decoder_layer", "protein_sequence_decoder_layer")
+        new_key = new_key.replace("esm_transformer_decoder", "protein_sequence_decoder")
+        new_key = new_key.replace("protein_graph_transformer_decoder_layer", "protein_graph_decoder_layer")
+        new_key = new_key.replace("protein_graph_transformer_decoder", "protein_graph_decoder")
+        new_key = new_key.replace("ligand_transformer_encoder_layer", "ligand_properties_encoder_layer")
+        new_key = new_key.replace("ligand_transformer_encoder", "ligand_properties_encoder")
+        new_key = new_key.replace("roberta_transformer_decoder_layer", "ligand_sequence_decoder_layer")
+        new_key = new_key.replace("roberta_transformer_decoder", "ligand_sequence_decoder")
+        new_key = new_key.replace("ligand_graph_transformer_decoder_layer", "ligand_graph_decoder_layer")
+        new_key = new_key.replace("ligand_graph_transformer_decoder", "ligand_graph_decoder")
+        new_key = new_key.replace("complex_transformer_encoder_layer", "complex_encoder_layer")
+        new_key = new_key.replace("complex_transformer_encoder", "complex_encoder")
+        new_key = new_key.replace("protein_transformer_decoder_layer", "protein_decoder_layer")
+        new_key = new_key.replace("protein_transformer_decoder", "protein_decoder")
+        new_key = new_key.replace("ligand_transformer_decoder_layer", "ligand_decoder_layer")
+        new_key = new_key.replace("ligand_transformer_decoder", "ligand_decoder")
+        new_key = new_key.replace("complex_graph_transformer_output_embedding_layer", "complex_graph_embedding_layer")
+        updated_state_dict[new_key] = value
+
+    # Update the checkpoint with the new state_dict
+    checkpoint['state_dict'] = updated_state_dict
+
+    # Save the updated checkpoint
+    torch.save(checkpoint, output_path)
+    
+    
 
 ###################################################
 # BEGIN CUSTOMIZATION BY @JEAVESJ (7/9/2025)
@@ -1992,3 +2046,50 @@ def main():
             protein_pocket_path=os.path.join(pose_dir, 'protein_pocket.pdb'),
             ligand_mol2_path=os.path.join(pose_dir, 'ligand.mol2'),
             protein_path=protein_path)
+
+        # Define data objects needed to obtain surface-oriented point cloud
+        data = {
+        'atom_coords': torch.tensor(protein_coords),
+        'atom_coords_batch': torch.zeros(protein_coords.shape[0], dtype=torch.long),
+        'atom_types': torch.tensor(protein_atom_types),
+        'atom_features': torch.tensor(protein_features),
+        'ligand_coords': torch.tensor(ligand_coords),
+        'ligand_coords_batch': torch.zeros(ligand_coords.shape[0], dtype=torch.long)
+    }
+
+        # Obtain surface coordinates and normals
+        protein_surface_coords, protein_surface_norms = process(data, device=torch.device('cuda'))
+
+        # Scale the featurized connected graphs
+        scaled_ligand_features,   \
+        scaled_ligand_edge_attrs, \
+        scaled_pocket_features,   \
+        scaled_pocket_edge_attrs, \
+        scaled_complex_features,  \
+        scaled_complex_edge_attrs = scale_graph_features(
+                                                ligand_node_features=ligand_features,
+                                                ligand_edge_attrs=ligand_edge_attrs,
+                                                protein_node_features=pocket_features,
+                                                protein_edge_attrs=pocket_edge_attrs,
+                                                complex_node_features=complex_features,
+                                                complex_edge_attrs=complex_edge_attrs,
+                                                scaler_file='/content/T-ALPHA/data_scalers/connected_graph_scaler.pkl')
+
+        # Scale the SMILES transformer encoder embedding
+        scaled_transformer_embedding = scale_transformer_embedding(transformer_embedding=transformer_vector,
+                                                            scaler_file='/content/T-ALPHA/data_scalers/ligand_sequence_scaler.pkl')
+
+        # Scale the RDKit 2D descriptor vector
+        scaled_rdkit_vector = scale_rdkit_vector(rdkit_vector=rdkit_vector,
+                                            scaler_file='/content/T-ALPHA/data_scalers/ligand_properties_scaler.pkl')
+
+        # Scale the ESM2 embedding
+        scaled_esm2_embedding = scale_esm2_embedding(esm2_embedding=esm2_embedding,
+                                                scaler_file='/content/T-ALPHA/data_scalers/protein_sequence_scaler.pkl')
+
+        # Scale the featurized unconnected graphs
+        scaled_protein_features = scale_unconnected_graph_features(protein_node_features=protein_features,
+                                                                scaler_file='/content/T-ALPHA/data_scalers/unconnected_graph_scaler.pkl')
+        
+        # Update keys in parameter file
+        update_parameter_keys('/content/T-ALPHA_params.ckpt', '/content/updated_T-ALPHA_params.ckpt')
