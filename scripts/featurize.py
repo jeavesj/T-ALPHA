@@ -462,9 +462,7 @@ class Transformer_Feature_Extractor(torch.nn.Module):
 
         return features
 
-# Define a feature extractor variable
-transformer_feature_extractor = Transformer_Feature_Extractor(model_parameters=os.path.join(BASE_DIR, 'SMILES_transformer_params.pt'),
-                                                              training_data=os.path.join(BASE_DIR, 'SMILES_transformer_pretraining_data.csv'))
+
 
 def add_hydrogens_and_save(molecule, output_file, output_format):
     """Add hydrogens to the given molecule and save it in the specified format, overwriting if needed."""
@@ -1957,9 +1955,6 @@ import subprocess
 import h5py
 from torch_geometric.loader import DataListLoader
 
-# --- Globals ---
-BASE_DIR = '/mnt/scratch/jeaves/T-ALPHA'
-
 def main():
 
     parser = argparse.ArgumentParser(
@@ -1989,7 +1984,23 @@ def main():
         default="/mnt/scratch/jeaves/T-ALPHA/logs",
         help="Number of top poses to process for each complex."
     )
+    parser.add_argument(
+        "--log_dir",
+        type=str,
+        default="/mnt/scratch/jeaves/T-ALPHA/logs",
+        help="Number of top poses to process for each complex."
+    )
+    parser.add_argument(
+        "--base_dir",
+        type=str,
+        default="/mnt/scratch/jeaves/T-ALPHA",
+        help="Base T-ALPHA directory path."
+    )
     args = parser.parse_args()
+    
+    # Define a feature extractor variable
+    transformer_feature_extractor = Transformer_Feature_Extractor(model_parameters=os.path.join(args.base_dir, 'SMILES_transformer_params.pt'),
+                                                              training_data=os.path.join(args.base_dir, 'SMILES_transformer_pretraining_data.csv'))
     
     idx_df = pd.read_csv(args.index_csv)
 
@@ -2073,23 +2084,23 @@ def main():
                                                 protein_edge_attrs=pocket_edge_attrs,
                                                 complex_node_features=complex_features,
                                                 complex_edge_attrs=complex_edge_attrs,
-                                                scaler_file='/content/T-ALPHA/data_scalers/connected_graph_scaler.pkl')
+                                                scaler_file=os.path.join(args.base_dir, 'data_scalers/connected_graph_scaler.pkl'))
 
         # Scale the SMILES transformer encoder embedding
         scaled_transformer_embedding = scale_transformer_embedding(transformer_embedding=transformer_vector,
-                                                            scaler_file='/content/T-ALPHA/data_scalers/ligand_sequence_scaler.pkl')
+                                                            scaler_file=os.path.join(args.base_dir, 'data_scalers/ligand_sequence_scaler.pkl'))
 
         # Scale the RDKit 2D descriptor vector
         scaled_rdkit_vector = scale_rdkit_vector(rdkit_vector=rdkit_vector,
-                                            scaler_file='/content/T-ALPHA/data_scalers/ligand_properties_scaler.pkl')
+                                            scaler_file=os.path.join(args.base_dir, 'data_scalers/ligand_properties_scaler.pkl'))
 
         # Scale the ESM2 embedding
         scaled_esm2_embedding = scale_esm2_embedding(esm2_embedding=esm2_embedding,
-                                                scaler_file='/content/T-ALPHA/data_scalers/protein_sequence_scaler.pkl')
+                                                scaler_file=os.path.join(args.base_dir, 'data_scalers/protein_sequence_scaler.pkl'))
 
         # Scale the featurized unconnected graphs
         scaled_protein_features = scale_unconnected_graph_features(protein_node_features=protein_features,
-                                                                scaler_file='/content/T-ALPHA/data_scalers/unconnected_graph_scaler.pkl')
+                                                                scaler_file=os.path.join(args.base_dir, 'data_scalers/unconnected_graph_scaler.pkl'))
         
         # Update keys in parameter file
-        update_parameter_keys('/content/T-ALPHA_params.ckpt', '/content/updated_T-ALPHA_params.ckpt')
+        update_parameter_keys(os.path.join(args.base_dir, 'T-ALPHA_params.ckpt', os.path.join(args.base_dir, 'updated_T-ALPHA_params.ckpt')))
