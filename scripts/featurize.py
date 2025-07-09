@@ -2016,12 +2016,6 @@ def main():
         help="Number of top poses to process for each complex."
     )
     parser.add_argument(
-        "--log_dir",
-        type=str,
-        default="/mnt/scratch/jeaves/T-ALPHA/logs",
-        help="Number of top poses to process for each complex."
-    )
-    parser.add_argument(
         "--base_dir",
         type=str,
         default="/mnt/scratch/jeaves/T-ALPHA",
@@ -2072,7 +2066,7 @@ def main():
         transformer_vector = get_transformer_vector(ligand_path, transformer_feature_extractor)
 
         # Extract protein pocket
-        extract_pocket(protein_path, ligand_path, os.path.join(pose_dir, 'protein_pocket.pdb', mol2_dir=pose_dir))
+        extract_pocket(protein_path, ligand_path, os.path.join(pose_dir, 'protein_pocket.pdb'), mol2_dir=pose_dir)
         
         # Define graph featurizer variables
         connected_featurizer =  Graph_Featurizer()
@@ -2134,7 +2128,7 @@ def main():
                                                                 scaler_file=os.path.join(args.base_dir, 'data_scalers/unconnected_graph_scaler.pkl'))
         
         # Update keys in parameter file
-        update_parameter_keys(os.path.join(args.base_dir, 'T-ALPHA_params.ckpt', os.path.join(args.base_dir, 'updated_T-ALPHA_params.ckpt')))
+        update_parameter_keys(os.path.join(args.base_dir, 'T-ALPHA_params.ckpt'), os.path.join(args.base_dir, 'updated_T-ALPHA_params.ckpt'))squeue 
         
         final_features = {
             "protein_nodes_withH_coords": protein_coords,
