@@ -1942,6 +1942,37 @@ def update_parameter_keys(ckpt_path, output_path):
     # Save the updated checkpoint
     torch.save(checkpoint, output_path)
     
+def save_to_hdf5(output_path, complex_id, **data_to_save):
+    """
+    Saves a dictionary of features for a single complex to an HDF5 file.
+    The dictionary keys will be used as the dataset names.
+    """
+    def to_numpy(data):
+        if isinstance(data, torch.Tensor):
+            return data.cpu().numpy()
+        return np.array(data)
+
+    print(f"Saving features for '{complex_id}' to {output_path}...")
+    
+    with h5py.File(output_path, "a") as hf:
+        if complex_id in hf:
+            print(f"Warning: Complex '{complex_id}' already exists. Overwriting.")
+            del hf[complex_id]
+
+        grp = hf.create_group(complex_id)
+
+        for key, value in data_to_save.items():
+            if key in ["operator", "pdbid"]:
+                # PDBID is now the group name, operator is a string
+                grp.create_dataset(key, data=np.bytes_(value))
+            elif key == "pKi_value":
+                # Handle scalar float value for the label
+                grp.create_dataset(key, data=value)
+            else:
+                # Handle all other numpy/tensor array data
+                grp.create_dataset(key, data=to_numpy(value))
+
+    print(f"Successfully saved '{complex_id}'.")
     
 
 ###################################################
@@ -2104,3 +2135,34 @@ def main():
         
         # Update keys in parameter file
         update_parameter_keys(os.path.join(args.base_dir, 'T-ALPHA_params.ckpt', os.path.join(args.base_dir, 'updated_T-ALPHA_params.ckpt')))
+        
+        final_features = {
+            "protein_nodes_withH_coords": protein_coords,
+            "protein_nodes_withH_atom_types": protein_atom_types,
+            "protein_nodes_withH_features": scaled_protein_features,
+            "ligand_node_coords": ligand_coords,
+            "protein_surface_coords": protein_surface_coords,
+            "protein_surface_normals": protein_surface_norms,
+            "protein_node_features": scaled_pocket_features,
+            "protein_node_coords": pocket_coords,
+            "protein_edge_idx": pocket_edges,
+            "protein_edge_attrs": scaled_pocket_edge_attrs,
+            "esm2_embedding": scaled_esm2_embedding,
+            "rdkit_vector": scaled_rdkit_vector,
+            "RoBERTa_vector": scaled_transformer_embedding,
+            "ligand_node_features": scaled_ligand_features,
+            "ligand_edge_idx": ligand_edges,
+            "ligand_edge_attrs": scaled_ligand_edge_attrs,
+            "complex_node_coords": complex_coords,
+            "complex_node_features": scaled_complex_features,
+            "complex_edge_idx": complex_edges,
+            "complex_edge_attrs": scaled_complex_edge_attrs,
+            "operator": "=",
+            "pKi_value": pki,
+        }
+        
+        # Save final features to hdf5 file
+        save_to_hdf5(output_path=args.output_h5, complex_id=pdb_id, **final_features)
+
+if __name__ == "__main__":
+    main()
