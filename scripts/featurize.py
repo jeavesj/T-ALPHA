@@ -463,8 +463,8 @@ class Transformer_Feature_Extractor(torch.nn.Module):
         return features
 
 # Define a feature extractor variable
-transformer_feature_extractor = Transformer_Feature_Extractor(model_parameters='/content/SMILES_transformer_params.pt',
-                                                              training_data='/content/SMILES_transformer_pretraining_data.csv')
+transformer_feature_extractor = Transformer_Feature_Extractor(model_parameters=os.path.join(BASE_DIR, 'SMILES_transformer_params.pt'),
+                                                              training_data=os.path.join(BASE_DIR, 'SMILES_transformer_pretraining_data.csv'))
 
 def add_hydrogens_and_save(molecule, output_file, output_format):
     """Add hydrogens to the given molecule and save it in the specified format, overwriting if needed."""
@@ -472,85 +472,6 @@ def add_hydrogens_and_save(molecule, output_file, output_format):
     output_file_obj = pybel.Outputfile(output_format, output_file, overwrite=True)  # Overwrite existing files
     output_file_obj.write(molecule)
     output_file_obj.close()
-
-def extract_protein_and_ligand_from_cif(
-    cif_file: str,
-    output_dir: str = '/content/chai1_results/',
-    pdbid: str = "structure",
-    ligand_resname: str = "LIG"
-) -> (str, str):
-    """
-    Given a Chai1-generated CIF file, this function:
-      1. Parses the CIF to obtain a structure.
-      2. Saves the combined structure as a PDB.
-      3. Splits the PDB into protein and ligand parts based on the ligand_resname.
-      4. Saves the protein part as a PDB file.
-      5. Converts the ligand part to an SDF file using RDKit.
-      6. Adds hydrogens to both protein and ligand and overwrites the files.
-
-    Args:
-        cif_file (str): Path to the Chai1-generated CIF file.
-        output_dir (str): Directory where output PDB and SDF files will be stored.
-        pdbid (str): An identifier to use in the output filenames. Defaults to "structure".
-        ligand_resname (str): Residue name used to identify the ligand in the PDB. Defaults to "LIG".
-
-    Returns:
-        (str, str): A tuple containing the paths to the hydrogen-added protein PDB and ligand SDF files.
-    """
-
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    # Parse CIF and save combined PDB
-    parser = MMCIFParser(QUIET=True)
-    structure = parser.get_structure(pdbid, cif_file)
-    pdbio = PDBIO()
-    pdbio.set_structure(structure)
-    combined_pdb_file = output_dir / f"{pdbid}_combined_chai1.pdb"
-    pdbio.save(str(combined_pdb_file))
-
-    # Split into protein and ligand PDB files
-    protein_lines = []
-    ligand_lines = []
-
-    with open(combined_pdb_file, 'r') as file:
-        lines = file.readlines()
-
-    # Identify ligand lines by residue name
-    for line in lines:
-        if f" {ligand_resname} " in line:
-            ligand_lines.append(line)
-        else:
-            protein_lines.append(line)
-
-    protein_file_name = output_dir / f"{pdbid}_protein_chai1.pdb"
-    ligand_file_name_pdb = output_dir / f"{pdbid}_ligand_chai1.pdb"
-
-    with open(protein_file_name, 'w') as protein_file:
-        protein_file.writelines(protein_lines)
-
-    with open(ligand_file_name_pdb, 'w') as ligand_file:
-        ligand_file.writelines(ligand_lines)
-
-    # Convert ligand PDB to SDF using RDKit
-    ligand_sdf_file = output_dir / f"{pdbid}_ligand_chai1.sdf"
-    ligand_mol = Chem.MolFromPDBFile(str(ligand_file_name_pdb), removeHs=False)
-    if ligand_mol is None:
-        raise ValueError("Could not parse ligand from PDB. Check ligand_resname or file integrity.")
-
-    Chem.MolToMolFile(ligand_mol, str(ligand_sdf_file))
-
-    # Add hydrogens to the protein PDB using Pybel
-    # Protein is PDB format
-    prot = next(pybel.readfile("pdb", str(protein_file_name)))
-    add_hydrogens_and_save(prot, str(protein_file_name), "pdb")
-
-    # Add hydrogens to the ligand SDF using Pybel
-    lig = next(pybel.readfile("sdf", str(ligand_sdf_file)))
-    add_hydrogens_and_save(lig, str(ligand_sdf_file), "sdf")
-
-
-    return str(protein_file_name), str(ligand_sdf_file)
 
 def get_esm2_embedding(pdb_file: str, esm_model, esm_alphabet) -> np.ndarray:
     """
@@ -711,10 +632,10 @@ def convert_ligand_to_mol2(ligand_file, output_mol2_file):
 
 
 """ define function to extract pocket from protein pdb """
-def extract_pocket(protein_pdb, ligand_file, output_pocket_pdb):
+def extract_pocket(protein_pdb, ligand_file, output_pocket_pdb, mol2_dir):
     # Convert ligand file to MOL2 format if it's not already MOL2
     if not ligand_file.endswith(".mol2"):
-        ligand_mol2 = '/content/ligand.mol2'
+        ligand_mol2 = os.path.join(mol2_dir, 'ligand.mol2')
         convert_ligand_to_mol2(ligand_file, ligand_mol2)
     else:
         ligand_mol2 = ligand_file
@@ -2055,7 +1976,7 @@ def main():
         transformer_vector = get_transformer_vector(ligand_path, transformer_feature_extractor)
 
         # Extract protein pocket
-        extract_pocket(protein_path, ligand_path, os.path.join(pose_dir, 'protein_pocket.pdb'))
+        extract_pocket(protein_path, ligand_path, os.path.join(pose_dir, 'protein_pocket.pdb', mol2_dir=pose_dir))
         
         # Define graph featurizer variables
         connected_featurizer =  Graph_Featurizer()
