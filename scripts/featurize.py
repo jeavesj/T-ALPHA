@@ -552,13 +552,23 @@ def get_rdkit_vector(sdf_file: str) -> np.ndarray:
         np.ndarray: A 1D float32 NumPy array of length 209 containing the computed descriptors.
     """
 
-    # Load the molecule from SDF
-    suppl = Chem.SDMolSupplier(sdf_file, removeHs=False)
-    mols = [m for m in suppl if m is not None]
-    if len(mols) == 0:
-        raise ValueError(f"No valid molecules found in {sdf_file}.")
+    try:
+        # Load the molecule from SDF
+        suppl = Chem.SDMolSupplier(sdf_file, removeHs=False)
+        mols = [m for m in suppl if m is not None]
+        if len(mols) == 0:
+            print("RDKit failed to parse molecule. Try sanitizing manually.")
+        mol = Chem.MolFromMolFile("3g2z_ligand.sdf", sanitize=False)
+        if mol is not None:
+            print("Parsed without sanitizing. Trying to sanitize...")
+            Chem.SanitizeMol(mol)
+        else:
+            print("Completely failed to parse.")
+    except Exception as e:
+        print(f"RDKit error: {e}")
+    
     mol = mols[0]
-
+    
     # Get all descriptor names, excluding 'SPS'
     all_descriptor_names = [d[0] for d in Descriptors.descList if d[0] != "SPS"]
 
@@ -2128,7 +2138,7 @@ def main():
                                                                 scaler_file=os.path.join(args.base_dir, 'data_scalers/unconnected_graph_scaler.pkl'))
         
         # Update keys in parameter file
-        update_parameter_keys(os.path.join(args.base_dir, 'T-ALPHA_params.ckpt'), os.path.join(args.base_dir, 'updated_T-ALPHA_params.ckpt'))squeue 
+        update_parameter_keys(os.path.join(args.base_dir, 'T-ALPHA_params.ckpt'), os.path.join(args.base_dir, 'updated_T-ALPHA_params.ckpt')) 
         
         final_features = {
             "protein_nodes_withH_coords": protein_coords,
@@ -2153,6 +2163,7 @@ def main():
             "complex_edge_attrs": scaled_complex_edge_attrs,
             "operator": "=",
             "pKi_value": pki,
+            "pKi": pki
         }
         
         # Save final features to hdf5 file
