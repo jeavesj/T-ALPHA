@@ -1,6 +1,7 @@
+##########################################################################################
 # NOTE: The majority of this script was copied exactly from Gregory Kyro's T-ALPHA.ipynb 
 # See original at https://github.com/gregory-kyro/T-ALPHA/ (as of 7/9/2025)
-
+##########################################################################################
 
 # Ensure reproducibility in CUDA operations by setting the CuBLAS workspace configuration
 import os
@@ -1967,3 +1968,106 @@ def scale_unconnected_graph_features(protein_node_features: np.ndarray, scaler_f
     standardized_features = np.concatenate([non_continuous_features, standardized_continuous_features], axis=1)
 
     return standardized_features
+
+
+
+###################################################
+# BEGIN CUSTOMIZATION BY @JEAVESJ (7/9/2025)
+# Adapted from Gregory Kyro's T-ALPHA.ipynb main()
+###################################################
+
+# --- Imports --- 
+import argparse
+import subprocess
+import h5py
+from torch_geometric.loader import DataListLoader
+
+# --- Globals ---
+BASE_DIR = '/mnt/scratch/jeaves/T-ALPHA'
+
+def main():
+
+    parser = argparse.ArgumentParser(
+        description="Featurize protein-ligand poses and save them to a single HDF5 file for T-ALPHA inference."
+    )
+    parser.add_argument(
+        "--index_csv",
+        type=str,
+        default='/mnt/scratch/jeaves/T-ALPHA/PDBbind_v2020_core.csv',
+        help="Path to the CSV file containing PDB IDs and ligand names."
+    )
+    parser.add_argument(
+        "--poses_dir",
+        type=str,
+        default="/mnt/scratch/jeaves/docking/demo/",
+        help="Base directory containing the structure subdirectories."
+    )
+    parser.add_argument(
+        "--output_h5",
+        type=str,
+        default='/mnt/scratch/jeaves/T-ALPHA/CASF_crystal.h5',
+        help="Path for the output HDF5 file."
+    )
+    parser.add_argument(
+        "--log_dir",
+        type=str,
+        default="/mnt/scratch/jeaves/T-ALPHA/logs",
+        help="Number of top poses to process for each complex."
+    )
+    args = parser.parse_args()
+    
+    idx_df = pd.read_csv(args.index_csv)
+
+    if os.path.exists(args.output_h5):
+        os.remove(args.output_h5)
+        print(f"Removed existing file: {args.output_h5}")
+        
+    for _, row in idx_df.iterrows():
+        pdb_id = str(row['pdb_id']).lower()
+        ligand_name = str(row['ligand_name']).upper()
+        pki = row['target']
+        
+        pose_base_dir = os.path.join(args.poses_dir, pdb_id)
+        pose_dir = pose_base_dir
+        
+        if not os.path.isdir(pose_dir):
+            logging.info(f"Warning: Pose directory not found, skipping: {pose_dir}")
+            continue
+        
+        protein_path = os.path.join(pose_dir, f'{pdb_id}_protein.pdb')
+        ligand_path = os.path.join(pose_dir, f'{pdb_id}_ligand.sdf')
+        
+        # Add hydrogens to the protein
+        protein_molecule = next(pybel.readfile("pdb", protein_path))
+        add_hydrogens_and_save(protein_molecule, protein_path, "pdb")
+        
+        # Add hydrogens to the ligand
+        ligand_molecule = next(pybel.readfile("sdf", ligand_path))
+        add_hydrogens_and_save(ligand_molecule, ligand_path, "sdf")
+        
+        # Extract ESM2 embedding
+        esm2_embedding = get_esm2_embedding(protein_path, esm_model, esm_alphabet)
+
+        # Extract RDKit 2D descriptor vector
+        rdkit_vector = get_rdkit_vector(ligand_path)
+
+        # Extract SMILES transformer encoder embedding
+        transformer_vector = get_transformer_vector(ligand_path, transformer_feature_extractor)
+
+        # Extract protein pocket
+        extract_pocket(protein_path, ligand_path, os.path.join(pose_dir, 'protein_pocket.pdb'))
+        
+        # Define graph featurizer variables
+        connected_featurizer =  Graph_Featurizer()
+        unconnected_featurizer = Graph_Featurizer(surface_features_bool=True)
+
+        # Obtain graphs
+        pocket_coords, pocket_features, pocket_edges, pocket_edge_attrs, \
+        ligand_coords, ligand_features, ligand_edges, ligand_edge_attrs, \
+        complex_coords, complex_features, complex_edges, complex_edge_attrs, \
+        protein_coords, protein_atom_types, protein_features = get_graphs(
+            connected_featurizer=connected_featurizer,
+            unconnected_featurizer=unconnected_featurizer,
+            protein_pocket_path=os.path.join(pose_dir, 'protein_pocket.pdb'),
+            ligand_mol2_path=os.path.join(pose_dir, 'ligand.mol2'),
+            protein_path=protein_path)
