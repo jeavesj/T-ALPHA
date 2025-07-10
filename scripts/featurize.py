@@ -558,16 +558,22 @@ def get_rdkit_vector(sdf_file: str) -> np.ndarray:
         mols = [m for m in suppl if m is not None]
         if len(mols) == 0:
             print("RDKit failed to parse molecule. Try sanitizing manually.")
-        mol = Chem.MolFromMolFile("3g2z_ligand.sdf", sanitize=False)
-        if mol is not None:
-            print("Parsed without sanitizing. Trying to sanitize...")
-            Chem.SanitizeMol(mol)
+            mol = Chem.MolFromMolFile(sdf_file, sanitize=False, removeHs=False)
+            if mol is not None:
+                print("Parsed without sanitizing. Trying to sanitize...")
+                try:
+                    Chem.SanitizeMol(mol)
+                except Exception as e:
+                    print(f'Warning! Molecule could not be sanitized due to error: {e}.')
+                    print(f'Attempting to proceed with unsanitized molecule.')
+            else:
+                print("Completely failed to parse.")
         else:
-            print("Completely failed to parse.")
+            mol = mols[0]
     except Exception as e:
         print(f"RDKit error: {e}")
     
-    mol = mols[0]
+    
     
     # Get all descriptor names, excluding 'SPS'
     all_descriptor_names = [d[0] for d in Descriptors.descList if d[0] != "SPS"]
@@ -607,15 +613,30 @@ def get_transformer_vector(sdf_file: str, transformer_feature_extractor) -> np.n
     """
 
     # Load the ligand molecule from the SDF file
-    suppl = Chem.SDMolSupplier(sdf_file, removeHs=False)
-    mols = [m for m in suppl if m is not None]
-    if len(mols) == 0:
-        raise ValueError(f"No valid molecules found in {sdf_file}.")
-    mol = mols[0]
+    try:
+        # Load the molecule from SDF
+        suppl = Chem.SDMolSupplier(sdf_file, removeHs=False)
+        mols = [m for m in suppl if m is not None]
+        if len(mols) == 0:
+            print("RDKit failed to parse molecule. Try sanitizing manually.")
+            mol = Chem.MolFromMolFile(sdf_file, sanitize=False, removeHs=False)
+            if mol is not None:
+                print("Parsed without sanitizing. Trying to sanitize...")
+                try:
+                    Chem.SanitizeMol(mol)
+                except Exception as e:
+                    print(f'Warning! Molecule could not be sanitized due to error: {e}.')
+                    print(f'Attempting to proceed with unsanitized molecule.')
+            else:
+                print("Completely failed to parse.")
+        else:
+            mol = mols[0]
+    except Exception as e:
+        print(f"RDKit error: {e}")
 
     # Convert to canonical SMILES
-    canonical_smiles = Chem.MolToSmiles(mol, canonical=True)
-
+    canonical_smiles = Chem.MolToSmiles(mol, canonical=True, isomericSmiles=False)
+    print(canonical_smiles) # remove this
     # Extract features using the transformer model
     features = transformer_feature_extractor.extract_features(canonical_smiles)
 
