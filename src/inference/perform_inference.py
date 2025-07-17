@@ -19,6 +19,7 @@ def perform_inference(
     batch_size=32,
     batch_norm=True,
     device="cuda" if torch.cuda.is_available() else "cpu",
+    verbose=False
 ):
     """
     Perform inference.
@@ -278,6 +279,9 @@ def perform_inference(
             "target": [tgt[0] for tgt in targets],
         }
     )
+
+    if verbose:
+        print(df)
 
     # Calculate metrics
     rmse = np.sqrt(mean_squared_error(df["target"], df["prediction"]))
