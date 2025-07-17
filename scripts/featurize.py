@@ -2079,6 +2079,9 @@ def main():
         protein_path = os.path.join(pose_dir, f'{pdb_id}_protein.pdb')
         ligand_path = os.path.join(pose_dir, f'{pdb_id}_ligand.sdf')
         
+        # POSSIBLY USEFUL CLEANING STEP
+        
+        
         # Add hydrogens to the protein
         protein_molecule = next(pybel.readfile("pdb", protein_path))
         add_hydrogens_and_save(protein_molecule, protein_path, "pdb")
